@@ -267,7 +267,7 @@ Skills are procedures; the main session runs them. **Agents are workers with the
 | `seshat` | Bookkeeper: ledgers, reconciliation, figures | Directly · `orion-close` when a done-when turns on money | Move money, pay or submit anything |
 | `sia` | Counsellor: what matters, what's at risk, who takes what | Directly · `orion-review` · the weekly sweep | Write, send or decide anything |
 | `odin` | Researcher: sourced findings | `orion-research` | Plans, or prose in the owner's voice |
-| `ptah` | Builder: repos, branches, CI, servers | Directly · under `orion-clean-code` | Merge, push to main, change production, or read a secret without the owner's word |
+| `ptah` | Builder: repos, branches, CI, servers | Directly · under `orion-clean-code` | Read a secret. Merge, push to main or change production without the owner's word |
 | `anubis` | Guardian: read-only security review | After `ptah`, before the owner merges | Fix or change anything |
 | `hathor` | Designer: direction, critique and audit, decision mocks, the build brief, finish review | Directly · before `ptah` builds an interface, and after, beside `anubis` | Edit a site's source, commit or merge; choose for the owner |
 
