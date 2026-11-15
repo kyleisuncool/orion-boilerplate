@@ -207,9 +207,36 @@ def is_protected(rel):
     return rel.startswith(PROTECTED)
 
 
+FENCE_HEADER = "Fenced path"
+FENCE_TABLE_RE = re.compile(r"^\|\s*" + FENCE_HEADER + r"\s*\|", re.M)
+NO_FENCE = ("", "(none)")  # the empty table's placeholder row, *(none)*, once its emphasis is stripped
+
+
+def vault_fences(vault, extra=()):
+    """Every fenced path: the Fences table in VAULT/AGENTS.md, then any extra ones given.
+
+    Refuses when there is no table to read. A scan that can't see the fences would open them."""
+    manual = os.path.join(vault, "AGENTS.md")
+    text = ""
+    if os.path.isfile(manual):
+        with open(manual, encoding="utf-8") as f:
+            text = f.read()
+    if not FENCE_TABLE_RE.search(text):
+        raise SystemExit(f"no Fences table in {manual} (a table headed | {FENCE_HEADER} | Since | Known cost |, "
+                         "with a *(none)* row if nothing is fenced) — nothing was scanned")
+    listed = [unbacktick(r.get(FENCE_HEADER)).strip("*_ ") for r in table_rows(manual, FENCE_HEADER)]
+    fences = []
+    for f in listed + list(extra):
+        if f not in NO_FENCE and f not in fences:
+            fences.append(f)
+    return fences
+
+
 def vault_md_files(vault, fences=()):
-    """Yield (relpath, abspath) for every .md in a vault, skipping .git, .obsidian and fences."""
-    fences = tuple(f.rstrip("/") + "/" for f in fences)
+    """Yield (relpath, abspath) for every .md in a vault, skipping .git, .obsidian and fences.
+    A fence is a folder (everything under it) or a single file."""
+    fenced_files = tuple(f.rstrip("/") for f in fences)
+    fences = tuple(f + "/" for f in fenced_files)
     for dirpath, dirnames, filenames in os.walk(vault):
         rel_dir = os.path.relpath(dirpath, vault)
         rel_dir = "" if rel_dir == "." else rel_dir + "/"
@@ -218,7 +245,7 @@ def vault_md_files(vault, fences=()):
         for fn in filenames:
             if fn.endswith(".md") and not os.path.islink(os.path.join(dirpath, fn)):
                 rel = rel_dir + fn
-                if not rel.startswith(fences):
+                if not rel.startswith(fences) and rel not in fenced_files:
                     yield rel, os.path.join(dirpath, fn)
 
 

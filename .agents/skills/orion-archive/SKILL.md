@@ -169,7 +169,7 @@ Run `resume <Name>` — orion-archive, restore path.
 ## Restore — `resume <Name>`
 
 1. **Read the tombstone first.** It lists exactly what's in the bundle. Don't reconstruct from memory.
-2. **File plane (if used):** move each folder the tombstone lists back from the archive root, `fpmove.py … --reason restore`, then `repoint.py`.
+2. **File plane (if used):** move each folder the tombstone lists back from the archive root, `fpmove.py … --reason restore`, then `python3 <skills-repo>/scripts/repoint.py <vault> --apply`, which skips every path under **Fences** in `AGENTS.md` itself.
 3. **Move the Project and Area folders back** to their exact pre-archive paths (`git mv`).
 4. **Move area-native research back into the Area's `knowledge/`**, not the `3. Resources/Research/` root — single-owner material belongs to its Area while the Area is live. This is a new path, not the pre-archive one; links follow it in step 6.
 5. **Re-promote downgraded people:** restore the `cadence:` each had immediately before the archive — read it from the archive commit's diff of their page rather than guessing — and set a real `follow_up_by:`. Deviate only if something concrete about the resumed relationship changed. Add a new Contact History line; don't edit the old one.

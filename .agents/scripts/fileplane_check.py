@@ -3,6 +3,9 @@
 
     fileplane_check.py VAULT [--fence REL_PATH ...] [--stale-days 7]
 
+Fenced paths are never opened: every path in the Fences table of the vault's AGENTS.md, plus
+any given with --fence. With no Fences table to read, it refuses.
+
 Part A, pointers (this vault): every backticked ~/ or /home/ path in every page.
   STALE             a page points at a moved path; the ledger knows where it went (fix: repoint.py —
                     every page, ledgers and archive included, path only)
@@ -72,7 +75,8 @@ def name_index(dirs):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("vault")
-    ap.add_argument("--fence", action="append", default=[])
+    ap.add_argument("--fence", action="append", default=[],
+                    help="another path to fence, beyond the Fences table in VAULT/AGENTS.md")
     ap.add_argument("--stale-days", type=int, default=7)
     a = ap.parse_args()
     fplib.use_vault(a.vault)
@@ -81,11 +85,12 @@ def main():
         print("skipped: no registry/ — the file plane is not in use")
         return
 
+    fences = fplib.vault_fences(a.vault, a.fence)
     pairs = fplib.load_ledger()
     eps = [e for e in fplib.endpoints() if os.path.isdir(fplib.expand(e["path"]))]
     rts = fplib.roots()
     work, archive = rts.get("work"), rts.get("archive")
-    reg = fplib.id_registry(a.vault, a.fence)
+    reg = fplib.id_registry(a.vault, fences)
     out = {}
 
     def add(code, line):
@@ -96,7 +101,7 @@ def main():
     names = None
     scope = fplib.scope_prefixes()
     total = ok = 0
-    for rel, path in fplib.vault_md_files(a.vault, a.fence):
+    for rel, path in fplib.vault_md_files(a.vault, fences):
         with open(path, encoding="utf-8") as f:
             text = f.read()
         kept = fplib.is_protected(rel)
@@ -190,7 +195,7 @@ def main():
                 add("UNREGISTERED-BOX", f"`{fplib.tilde(p)}`")
 
     # ---- Part C: IDs ----
-    for rel, path in fplib.vault_md_files(a.vault, a.fence):
+    for rel, path in fplib.vault_md_files(a.vault, fences):
         if not rel.endswith("_hub.md"):
             continue
         with open(path, encoding="utf-8") as f:
@@ -204,7 +209,7 @@ def main():
     # ---- report ----
     print(f"## File plane — check 19 ({fplib.tilde(os.path.abspath(a.vault))})")
     print(f"Pointers: {total} found · {ok} resolve · moves ledger: {len(pairs)} rows · "
-          f"fences skipped: {', '.join(a.fence) or 'none'}")
+          f"fences skipped: {', '.join(fences) or 'none'}")
     order = ["ROOT-MISSING", "STALE", "LIVE-MISSING", "KEPT-MISSING", "MISNAMED", "LOOSE", "UNKNOWN-ID",
              "STALE-INTAKE", "DUP-INTAKE", "UNREGISTERED-BOX", "COUNTER-LOW", "UNKNOWN-PREFIX", "OUTSIDE"]
     for code in order:

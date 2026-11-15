@@ -322,7 +322,7 @@ It reads the vault's `registry/endpoints.md` (inboxes, outboxes, working roots) 
 
 | Code | Finding | Fix |
 |---|---|---|
-| `STALE` | A page — live, ledger or archive — points at a path that moved; the ledger knows where | `repoint.py <vault> --apply` — a **repair**, do it. Only the path between the backticks changes, never the prose |
+| `STALE` | A page — live, ledger or archive — points at a path that moved; the ledger knows where | `repoint.py <vault> --apply`, which skips every path under **Fences** in `AGENTS.md` itself — a **repair**, do it. Only the path between the backticks changes, never the prose |
 | `LIVE-MISSING` | A live page points at nothing, and the ledger doesn't know. Candidates by name are listed | Find where it went; record it with `fpmove.py --reason manual` if the owner moved it, then repoint. **A candidate is a hypothesis** — confirm before repointing |
 | `KEPT-MISSING` | Same, inside a ledger, capture or `5. Archive/` | Its own heading, like check 2's archive backlog. Find it, record it in the ledger, then repoint |
 | `MISNAMED` · `LOOSE` · `UNKNOWN-ID` | A working-root folder breaks the naming rule; a file sits loose in a root; a folder carries a prefix no Area declares | Rename via `fpmove.py` — a **change**, ask |
