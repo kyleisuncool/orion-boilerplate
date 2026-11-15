@@ -315,8 +315,10 @@ When it's in use: files live outside the vault (by default one folder per workst
 **Run the script, don't re-derive it.** It is mechanical end to end; paste its output under `## File Plane`:
 
 ```bash
-python3 <skills-repo>/scripts/fileplane_check.py "<vault>" --fence "<each fence AGENTS.md names>"
+python3 <skills-repo>/scripts/fileplane_check.py "<vault>"
 ```
+
+It skips every path under **Fences** in `AGENTS.md` itself; `--fence` adds one more. **If it refuses a Fences row, report the refusal as the finding.** Only the owner edits the Fences table, so never rewrite a row to get past it; that could lift a fence.
 
 It reads the vault's `registry/endpoints.md` (inboxes, outboxes, working roots) and `registry/file-moves.md` (the moves ledger), plus the Area hubs' counters, and reports — flags only:
 

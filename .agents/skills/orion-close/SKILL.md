@@ -76,7 +76,7 @@ python3 <skills-repo>/scripts/fpmove.py "~/Documents/YYYY-MM-DD-<ID> <Name>" "~/
 
 - **A deliverable binary the Area keeps using** (a finished deck, a signed contract) first moves to the Area's own folder, `--reason close` — the same deliverable/process split as step 2, applied to files.
 - **No folder** (the workstream produced no binaries) → nothing to move; say so in the report.
-- **Then repoint:** `python3 <skills-repo>/scripts/repoint.py <vault> --apply` (one `--fence` per path under Fences in `AGENTS.md`). It updates the path everywhere, the archived hub included — path only, never prose.
+- **Then repoint:** `python3 <skills-repo>/scripts/repoint.py <vault> --apply` (it skips every path under **Fences** in `AGENTS.md` itself; `--fence` adds one more). It updates the path everywhere, the archived hub included — path only, never prose.
 - **Never move a file-plane folder by hand.** The mover writes the row in `registry/file-moves.md`.
 
 ## 5. Update the Area hub

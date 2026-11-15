@@ -45,7 +45,7 @@ description: "The delivery protocol: stage a finished artifact in the right outb
    ```bash
    python3 <skills-repo>/scripts/repoint.py <vault> --apply
    ```
-   with `--fence <path>` for each path listed under **Fences** in `AGENTS.md`, to update the hub line to the processed path.
+   to update the hub line to the processed path. It skips every path under **Fences** in `AGENTS.md` itself; `--fence <path>` adds one more.
 
 ---
 
