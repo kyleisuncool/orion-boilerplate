@@ -5,7 +5,8 @@
     fpdedup.py DROP KEEP [--dry-run]
 
 Only from a list the owner has approved. Re-verifies sha1 at the moment of deletion and refuses
-on any mismatch, a missing KEEP, a directory pair whose trees differ, or an open editor lock.
+on any mismatch, a missing KEEP, a directory pair whose trees differ, an open editor lock, or a
+path holding a |, a backtick or a newline, which a ledger row can't hold.
 Each deletion appends a ledger row DROP -> KEEP (reason: dedup), so any vault page that named
 the dropped copy is repointed to the kept one by repoint.py.
 """
@@ -42,6 +43,9 @@ def tree(p):
 
 def dedup(drop, keep, dry):
     d, k = fplib.expand(drop), fplib.expand(keep)
+    skip = fplib.unrecordable_skip(drop, keep)
+    if skip:
+        return skip
     if not os.path.lexists(d):
         return f"SKIP missing: {fplib.tilde(drop)}"
     if not os.path.lexists(k):

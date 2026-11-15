@@ -128,15 +128,35 @@ def resolve(path, pairs):
     return p if moved else None
 
 
+# A ledger row is a table row with each path in backticks: | ends a cell, ` ends the pointer,
+# a newline ends the row. A path holding one can't be recorded, so it must not be moved either.
+LEDGER_BREAKERS = "|`\n\r"
+
+
+def ledger_cell(path):
+    """The form a ledger row stores: absolute, so it means the same from any folder, and ~-relative."""
+    return tilde(os.path.abspath(expand(path)))
+
+
+def unrecordable(*paths):
+    """The paths a ledger row can't hold."""
+    return [p for p in paths if any(c in ledger_cell(p) for c in LEDGER_BREAKERS)]
+
+
+def unrecordable_skip(*paths):
+    """A SKIP line naming the first path a ledger row can't hold, else "". Callers check this before
+    touching the disk, dry run included, so a move or delete never lands without its row."""
+    bad = unrecordable(*paths)
+    return f"SKIP path can't be recorded in the ledger (contains | ` or a newline): {bad[0]!r}" if bad else ""
+
+
 def append_ledger(old, new, reason, note=""):
     today = datetime.date.today().isoformat()
     note = " ".join(note.replace("|", "/").split())
-    cells = []
-    for p in (old, new):
-        p = tilde(os.path.abspath(expand(p)))  # absolute, so the row means the same from any folder
-        if any(c in p for c in "|`\n\r"):
-            raise SystemExit(f"refusing to record a path containing | ` or a newline: {p!r}")
-        cells.append(p)
+    bad = unrecordable(old, new)
+    if bad:  # callers check first; this stops a row that would corrupt the table
+        raise SystemExit(f"refusing to record a path containing | ` or a newline: {ledger_cell(bad[0])!r}")
+    cells = [ledger_cell(old), ledger_cell(new)]
     with open(LEDGER, "a", encoding="utf-8") as f:
         f.write(f"| {today} | `{cells[0]}` | `{cells[1]}` | {reason} | {note} |\n")
 

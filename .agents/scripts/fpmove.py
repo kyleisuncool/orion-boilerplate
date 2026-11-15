@@ -9,8 +9,9 @@
 or by hand): OLD must be gone, NEW must exist, nothing on disk changes. The note says how the
 move is known — a log entry, the owner's word, or "inferred: <why>".
 
-Never copies, never deletes, never overwrites. Refuses if DEST exists or SRC is open in an
-editor (a .~lock file). Parent folders of DEST are created. Every protocol step that moves a
+Never copies, never deletes, never overwrites. Refuses if DEST exists, SRC is open in an
+editor (a .~lock file), or either path holds a |, a backtick or a newline, which a ledger row
+can't hold. Parent folders of DEST are created. Every protocol step that moves a
 file uses this, so the ledger cannot fall behind the disk.
 """
 import argparse
@@ -26,6 +27,9 @@ REASONS = ("reorg", "ingest", "deliver", "sent", "close", "archive", "restore", 
 
 def record(src, dest, reason, note, dry):
     s, d = fplib.expand(src), fplib.expand(dest)
+    skip = fplib.unrecordable_skip(src, dest)
+    if skip:
+        return skip
     if os.path.lexists(s):
         return f"SKIP old path still exists (not a past move): {fplib.tilde(src)}"
     if not os.path.lexists(d):
@@ -40,6 +44,9 @@ def record(src, dest, reason, note, dry):
 
 def move(src, dest, reason, note, dry):
     s, d = fplib.expand(src), fplib.expand(dest)
+    skip = fplib.unrecordable_skip(src, dest)
+    if skip:
+        return skip
     if not os.path.lexists(s):
         return f"SKIP missing source: {fplib.tilde(src)}"
     if os.path.lexists(d):
