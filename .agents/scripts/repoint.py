@@ -4,7 +4,8 @@
     repoint.py VAULT [--fence REL_PATH ...] [--live-only] [--apply]
 
 Dry run by default: prints every replacement it would make. --apply writes them.
-Every page is in scope, ledgers, captures and 5. Archive/ included: only the path between
+Every page is in scope, ledgers, captures and 5. Archive/ included, except the registry itself
+(registry/file-moves.md is append-only; its old paths are the record): only the path between
 the backticks changes, never a word of prose (the vault's link rule,
 applied to file-plane paths). --live-only skips 4. Decisions/, 5. Archive/, 0. Inbox/,
 wiki/log.md, wiki/folds/ and lint reports. Fenced paths are never opened: every path in the
@@ -34,7 +35,7 @@ def main():
     pairs = fplib.load_ledger()
     changed_files = changes = 0
     for rel, path in fplib.vault_md_files(a.vault, fences):
-        if fplib.is_protected(rel) and a.live_only:
+        if fplib.in_registry(rel, path) or (fplib.is_protected(rel) and a.live_only):
             continue
         with open(path, encoding="utf-8") as f:
             text = f.read()

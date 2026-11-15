@@ -7,7 +7,8 @@ Fenced paths are never opened: every path in the Fences table of the vault's AGE
 any given with --fence. With no Fences table to read, or a row that doesn't name one
 path in the vault, it refuses.
 
-Part A, pointers (this vault): every backticked ~/ or /home/ path in every page.
+Part A, pointers (this vault): every backticked ~/ or /home/ path in every page except the
+registry's own files, whose old paths are the record of each move.
   STALE             a page points at a moved path; the ledger knows where it went (fix: repoint.py —
                     every page, ledgers and archive included, path only)
   LIVE-MISSING      a live page points at nothing, and the ledger doesn't know (candidates by name)
@@ -103,6 +104,8 @@ def main():
     scope = fplib.scope_prefixes()
     total = ok = 0
     for rel, path in fplib.vault_md_files(a.vault, fences):
+        if fplib.in_registry(rel, path):
+            continue
         with open(path, encoding="utf-8") as f:
             text = f.read()
         kept = fplib.is_protected(rel)

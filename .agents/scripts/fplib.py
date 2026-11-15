@@ -207,6 +207,15 @@ def is_protected(rel):
     return rel.startswith(PROTECTED)
 
 
+def in_registry(rel, path):
+    """True for a file in the vault's registry/ or the active registry. The moves ledger is
+    append-only and the endpoint list is the owner's, so neither is ever repointed or reported."""
+    if rel.startswith("registry/"):
+        return True
+    real, registry = os.path.realpath(path), os.path.realpath(REGISTRY)
+    return real.startswith(registry + os.sep) or real == os.path.realpath(LEDGER)
+
+
 FENCE_HEADER = "Fenced path"
 FENCE_FORMAT = (f"Fences go in a table headed | {FENCE_HEADER} | Since | Known cost | under a ## Fences heading, "
                 "one backticked path per row, relative to the vault (`2. Areas/Private/`), or a single "
