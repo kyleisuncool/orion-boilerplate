@@ -212,6 +212,12 @@ FENCE_TABLE_RE = re.compile(r"^\|\s*" + FENCE_HEADER + r"\s*\|", re.M)
 NO_FENCE = ("", "(none)")  # the empty table's placeholder row, *(none)*, once its emphasis is stripped
 
 
+def is_no_fence(cell):
+    """True for an empty cell or the *(none)* placeholder. Only this test strips emphasis:
+    a fence's own name keeps every character, so `_drafts/` stays `_drafts/`."""
+    return cell.strip("*_ ") in NO_FENCE
+
+
 def vault_fences(vault, extra=()):
     """Every fenced path: the Fences table in VAULT/AGENTS.md, then any extra ones given.
 
@@ -224,10 +230,10 @@ def vault_fences(vault, extra=()):
     if not FENCE_TABLE_RE.search(text):
         raise SystemExit(f"no Fences table in {manual} (a table headed | {FENCE_HEADER} | Since | Known cost |, "
                          "with a *(none)* row if nothing is fenced) — nothing was scanned")
-    listed = [unbacktick(r.get(FENCE_HEADER)).strip("*_ ") for r in table_rows(manual, FENCE_HEADER)]
+    listed = [unbacktick(r.get(FENCE_HEADER)) for r in table_rows(manual, FENCE_HEADER)]
     fences = []
     for f in listed + list(extra):
-        if f not in NO_FENCE and f not in fences:
+        if not is_no_fence(f) and f not in fences:
             fences.append(f)
     return fences
 
