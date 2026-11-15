@@ -9,8 +9,8 @@ the backticks changes, never a word of prose (the vault's link rule,
 applied to file-plane paths). --live-only skips 4. Decisions/, 5. Archive/, 0. Inbox/,
 wiki/log.md, wiki/folds/ and lint reports. Fenced paths are never opened: every path in the
 Fences table of the vault's AGENTS.md, plus any given with --fence. With no Fences table to
-read, it refuses. A pointer is repointed only when the old path is gone and the ledger's new
-path exists.
+read, or a row that doesn't name one path in the vault, it refuses. A pointer is repointed
+only when the old path is gone and the ledger's new path exists.
 """
 import argparse
 import os

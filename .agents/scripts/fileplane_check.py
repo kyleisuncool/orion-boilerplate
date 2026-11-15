@@ -4,7 +4,8 @@
     fileplane_check.py VAULT [--fence REL_PATH ...] [--stale-days 7]
 
 Fenced paths are never opened: every path in the Fences table of the vault's AGENTS.md, plus
-any given with --fence. With no Fences table to read, it refuses.
+any given with --fence. With no Fences table to read, or a row that doesn't name one
+path in the vault, it refuses.
 
 Part A, pointers (this vault): every backticked ~/ or /home/ path in every page.
   STALE             a page points at a moved path; the ledger knows where it went (fix: repoint.py —

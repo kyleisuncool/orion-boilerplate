@@ -138,6 +138,8 @@ Every command below maps to a skill file. **If your harness loads skills nativel
 
 Paths listed here are **never read, edited, scanned, or summarised** by any skill or session. Links *into* them are checked for existence only. **Only the owner adds or lifts a fence.**
 
+Write one backticked path per row, relative to the vault: `2. Areas/Private/` for a folder, `wiki/meta/notes.md` for one file, or a single *(none)* row when nothing is fenced. A row that doesn't name exactly one path in the vault stops the file-plane scripts until the owner fixes it.
+
 | Fenced path | Since | Known cost |
 |---|---|---|
 | *(none)* | | |

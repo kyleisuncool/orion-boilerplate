@@ -208,33 +208,125 @@ def is_protected(rel):
 
 
 FENCE_HEADER = "Fenced path"
-FENCE_TABLE_RE = re.compile(r"^\|\s*" + FENCE_HEADER + r"\s*\|", re.M)
-NO_FENCE = ("", "(none)")  # the empty table's placeholder row, *(none)*, once its emphasis is stripped
+FENCE_FORMAT = (f"Fences go in a table headed | {FENCE_HEADER} | Since | Known cost | under a ## Fences heading, "
+                "one backticked path per row, relative to the vault (`2. Areas/Private/`), or a single "
+                "*(none)* row. Only the owner edits that table.")
+NO_FENCE = ("", "(none)")  # a blank cell, or the empty table's *(none)* row once its emphasis is stripped
+HEADING_RE = re.compile(r"^(#{1,6})\s")
+FENCES_HEADING_RE = re.compile(r"^#{1,6}\s+Fences\s*$")
+CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")  # a \| inside [[path\|alias]] is not a column break
+SPAN_RE = re.compile(r"`([^`]*)`")
+EMPHASIS_RE = re.compile(r"^(\*\*|__|\*|_)(.+)\1$")
+WIKILINK_RE = re.compile(r"^\[\[([^\]|\\]+)(?:\\\|[^\]]*)?\]\]$")
+TRAILING_GLOB_RE = re.compile(r"(?:/\*{1,2})+/?$")
 
 
-def is_no_fence(cell):
-    """True for an empty cell or the *(none)* placeholder. Only this test strips emphasis:
-    a fence's own name keeps every character, so `_drafts/` stays `_drafts/`."""
-    return cell.strip("*_ ") in NO_FENCE
+def refuse_fences(where, why):
+    raise SystemExit(f"{where}: {why}. {FENCE_FORMAT} Nothing was scanned.")
+
+
+def fence_cells(manual, text):
+    """The Fenced-path cell of every row in the Fences section's table.
+
+    Code blocks are skipped, and a blank line doesn't end the table, so a row the owner added
+    is never silently dropped. Refuses when the section has no fences table, or more than one table."""
+    level, in_code, header, separators, cells = None, False, False, 0, []
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith(("```", "~~~")):
+            in_code = not in_code
+            continue
+        heading = None if in_code else HEADING_RE.match(s)
+        if heading:
+            if level is not None and len(heading.group(1)) <= level:
+                break
+            if level is None and FENCES_HEADING_RE.match(s):
+                level = len(heading.group(1))
+            continue
+        if in_code or level is None or not s.startswith("|"):
+            continue
+        row = [c.strip() for c in CELL_SPLIT_RE.split(s.strip("|"))]
+        if set("".join(row)) <= set("-: "):
+            separators += 1
+        elif not header and row[0] == FENCE_HEADER:
+            header = True
+        elif not header:
+            refuse_fences(manual, "the Fences section holds a table that isn't the fences table")
+        else:
+            cells.append(row[0])
+    if not header:
+        refuse_fences(manual, "no Fences table found")
+    if separators > 1:
+        refuse_fences(manual, "the Fences section holds more than one table")
+    return cells
+
+
+def exists_exactly(vault, rel):
+    """True if rel names an entry in the vault spelled exactly so, case included. The fence matcher
+    compares strings, so a near miss that a case-insensitive disk would accept must not pass."""
+    d = vault
+    for part in rel.split("/"):
+        try:
+            if part not in os.listdir(d):
+                return False
+        except OSError:
+            return False
+        d = os.path.join(d, part)
+    return True
+
+
+def normalise_fence(path):
+    """Vault-relative form: no leading ./ or /, no trailing /** glob, no doubled or trailing slash."""
+    path = re.sub(r"^(?:\./|/)+", "", path.strip())
+    path = TRAILING_GLOB_RE.sub("", path)
+    return os.path.normpath(path) if path else "."
+
+
+def fence_path(vault, where, cell):
+    """The one vault-relative path a Fences cell names. Refuses a cell that names more than one,
+    carries text outside its backticks, or names no path inside the vault."""
+    spans = SPAN_RE.findall(cell)
+    if len(spans) > 1:
+        refuse_fences(where, f"row {cell!r} names more than one path; give each its own row")
+    if spans:
+        if SPAN_RE.sub("", cell).strip("*_ "):
+            refuse_fences(where, f"row {cell!r} has text outside its backticks")
+        path = spans[0]
+    else:
+        path = cell.strip()
+        emphasis = EMPHASIS_RE.match(path)
+        if emphasis and not exists_exactly(vault, normalise_fence(path)):  # `_drafts/` stays as written
+            path = emphasis.group(2)
+    link = WIKILINK_RE.match(path.strip())
+    if link:
+        path = link.group(1)
+    path = normalise_fence(path)
+    if path == "." or path == ".." or path.startswith("../"):
+        refuse_fences(where, f"row {cell!r} doesn't name a path inside the vault")
+    if link and not exists_exactly(vault, path) and exists_exactly(vault, path + ".md"):
+        path += ".md"
+    if not exists_exactly(vault, path):
+        refuse_fences(where, f"row {cell!r} names {path!r}, which isn't in the vault (spelling and case must match)")
+    return path
 
 
 def vault_fences(vault, extra=()):
-    """Every fenced path: the Fences table in VAULT/AGENTS.md, then any extra ones given.
+    """Every fenced path, vault-relative: the Fences table in VAULT/AGENTS.md, then any extra ones given.
 
-    Refuses when there is no table to read. A scan that can't see the fences would open them."""
+    Refuses when there is no table to read, or a row it can't turn into one path in the vault.
+    A scan that can't see the fences would open them."""
     manual = os.path.join(vault, "AGENTS.md")
-    text = ""
-    if os.path.isfile(manual):
-        with open(manual, encoding="utf-8") as f:
-            text = f.read()
-    if not FENCE_TABLE_RE.search(text):
-        raise SystemExit(f"no Fences table in {manual} (a table headed | {FENCE_HEADER} | Since | Known cost |, "
-                         "with a *(none)* row if nothing is fenced) — nothing was scanned")
-    listed = [unbacktick(r.get(FENCE_HEADER)) for r in table_rows(manual, FENCE_HEADER)]
+    if not os.path.isfile(manual):
+        refuse_fences(manual, "no AGENTS.md")
+    with open(manual, encoding="utf-8") as f:
+        cells = fence_cells(manual, f.read())
     fences = []
-    for f in listed + list(extra):
-        if not is_no_fence(f) and f not in fences:
-            fences.append(f)
+    for where, cell in [(manual, c) for c in cells] + [("--fence", e) for e in extra]:
+        if cell.strip("*_ ") in NO_FENCE:
+            continue
+        path = fence_path(vault, where, cell)
+        if path not in fences:
+            fences.append(path)
     return fences
 
 
